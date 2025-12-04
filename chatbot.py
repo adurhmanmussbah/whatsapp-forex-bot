@@ -72,62 +72,20 @@ def webhook():
         token = request.args.get("hub.verify_token")
         challenge = request.args.get("hub.challenge")
 
-        print("GET verification received:", mode, token, challenge)
-
         if mode == "subscribe" and token == VERIFY_TOKEN:
-            print("Webhook verified!")
             return challenge, 200
         else:
-            print("Webhook verification failed")
             return "Verification failed", 403
 
     if request.method == "POST":
-        # ✅ Incoming WhatsApp message
-        data = request.get_json(silent=True)
-        print("Incoming webhook JSON:", data)
+        data = request.get_json()
+        print("Incoming:", data)
+        return "OK", 200
 
-        try:
-            entry = data["entry"][0]
-            changes = entry["changes"][0]
-            value = changes["value"]
-            messages = value.get("messages", [])
-
-            if not messages:
-                return jsonify({"status": "no messages"}), 200
-
-            message = messages[0]
-            sender = message["from"]  # phone number
-            text = message.get("text", {}).get("body", "").strip().upper()
-
-            print(f"Received from {sender}: {text}")
-
-            # Get price for the symbol
-            price = get_price_from_twelvedata(text)
-
-            if price is not None:
-                reply = f"📈 Latest price for {text}: {price}"
-            else:
-                reply = (
-                    "❌ Unknown or unsupported symbol.\n\n"
-                    "Try formats like:\n"
-                    "- BTCUSD\n"
-                    "- ETHUSD\n"
-                    "- XAUUSD (GOLD)\n"
-                    "- EURUSD\n"
-                    "- AUDUSD\n"
-                    "- GBPUSD\n"
-                    "- USDJPY\n"
-                )
-
-            send_whatsapp_message(sender, reply)
-
-        except Exception as e:
-            print("Error handling incoming message:", e)
-
-        return jsonify({"status": "ok"}), 200
 
 
 if __name__ == "__main__":
     # 0.0.0.0 makes it accessible from outside (through cloudflared)
     app.run(host="0.0.0.0", port=5000, debug=False)
+
 
